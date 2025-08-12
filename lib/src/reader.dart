@@ -81,6 +81,7 @@ class _SerialPortReaderImpl implements SerialPortReader {
   Isolate? _isolate;
   ReceivePort? _receiver;
   StreamController<Uint8List>? __controller;
+  static const MAX_LEN = 255;
 
   _SerialPortReaderImpl(SerialPort port, {int? timeout})
       : _port = port,
@@ -139,12 +140,21 @@ class _SerialPortReaderImpl implements SerialPortReader {
     final port = ffi.Pointer<sp_port>.fromAddress(args.address);
     final events = _createEvents(port, _kReadEvents);
     var bytes = 0;
+    Uint8List data = Uint8List(0);
+
     while (bytes >= 0) {
-      bytes = _waitEvents(port, events, args.timeout);
+      ffi.using((arena) {
+        final ptr = arena<ffi.Uint8>(MAX_LEN);
+        bytes = dylib.sp_blocking_read(port, ptr.cast(), MAX_LEN, args.timeout);
+
+        if(bytes < 0) {
+          throw bytes;
+        }
+        
+        data = Uint8List.fromList(ptr.asTypedList(bytes));
+      });
+
       if (bytes > 0) {
-        final data = Util.read(bytes, (ffi.Pointer<ffi.Uint8> ptr) {
-          return dylib.sp_nonblocking_read(port, ptr.cast(), bytes);
-        });
         args.sendPort.send(data);
       } else if (bytes < 0) {
         args.sendPort.send(SerialPort.lastError);
