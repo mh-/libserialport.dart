@@ -88,7 +88,7 @@ class _SerialPortReaderDesktopImpl implements SerialPortReader {
   Isolate? _isolate;
   ReceivePort? _receiver;
   StreamController<Uint8List>? __controller;
-  static const MAX_LEN = 255;
+  static const MAX_LEN = 33;
 
   _SerialPortReaderDesktopImpl(SerialPort port, {int? timeout})
       : _port = port,
