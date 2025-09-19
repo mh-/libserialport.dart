@@ -75,7 +75,7 @@ class SerialPortAndroid implements SerialPort {
   /// See also:
   /// - [SerialPortMode]
   Future<bool> open({required int mode}) async {
-    UsbPort? p = await _device.create("", interfaceNumber);
+    UsbPort? p = await _device.create();
 
     if (p == null) {
       return false;
@@ -218,6 +218,7 @@ class SerialPortAndroid implements SerialPort {
   ///
   /// If `timeout` is 0 or greater, the read operation is blocking.
   /// The timeout is specified in milliseconds. Pass 0 to wait infinitely.
+  @override
   Future<Uint8List> read(int bytes, {int timeout = -1}) async {
     _startReading();
 
