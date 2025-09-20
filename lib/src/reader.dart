@@ -150,16 +150,21 @@ class _SerialPortReaderDesktopImpl implements SerialPortReader {
     Uint8List data = Uint8List(0);
 
     while (bytes >= 0) {
-      ffi.using((arena) {
-        final ptr = arena<ffi.Uint8>(MAX_LEN);
-        bytes = dylib.sp_blocking_read(port, ptr.cast(), MAX_LEN, args.timeout);
+      try {
+        ffi.using((arena) {
+          final ptr = arena<ffi.Uint8>(MAX_LEN);
+          bytes =
+              dylib.sp_blocking_read(port, ptr.cast(), MAX_LEN, args.timeout);
 
-        if(bytes < 0) {
-          throw bytes;
-        }
-        
-        data = Uint8List.fromList(ptr.asTypedList(bytes));
-      });
+          if (bytes < 0) {
+            throw bytes;
+          }
+
+          data = Uint8List.fromList(ptr.asTypedList(bytes));
+        });
+      } catch (errorCode) {
+        print("libserialport _waitRead(): Caught error code $errorCode");
+      }
 
       if (bytes > 0) {
         args.sendPort.send(data);
@@ -236,13 +241,13 @@ class _SerialPortReaderAndroidImpl implements SerialPortReader {
     Stream<Uint8List> _stream = _timeout == null
         ? _port.port!.inputStream!
         : _port.port!.inputStream!.timeout(
-      Duration(milliseconds: _timeout!),
-      onTimeout: (sink) {
-        sink.addError(SerialPortError('Timeout'));
-      },
-    );
+            Duration(milliseconds: _timeout!),
+            onTimeout: (sink) {
+              sink.addError(SerialPortError('Timeout'));
+            },
+          );
 
-    _receiver = _stream!.listen((data) {
+    _receiver = _stream.listen((data) {
       if (data is SerialPortError) {
         _controller.addError(data);
       } else {
